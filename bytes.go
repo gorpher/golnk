@@ -42,15 +42,15 @@ func ReadBytes(b []byte, offset, num int) (out []byte, n int) {
 }
 
 /*
-	readSection reads a size from the start of the io.Reader. The size length is
-	decided by the parameter sSize.
-	sSize == 2 - read uint16
-	sSize == 4 - read uint32
-	sSize == 8 - read uint64 - Not needed for now.
-	Then read (size-sSize) bytes, populate the start with the original bytes
-	and add the rest. Finally return the []byte and a new io.Reader to it.
-	The size bytes are added to the start of the []byte to keep the section
-	[]byte intact for later offset use.
+readSection reads a size from the start of the io.Reader. The size length is
+decided by the parameter sSize.
+sSize == 2 - read uint16
+sSize == 4 - read uint32
+sSize == 8 - read uint64 - Not needed for now.
+Then read (size-sSize) bytes, populate the start with the original bytes
+and add the rest. Finally return the []byte and a new io.Reader to it.
+The size bytes are added to the start of the []byte to keep the section
+[]byte intact for later offset use.
 */
 func readSection(r io.Reader, sSize int, maxSize uint64) (data []byte, nr io.Reader, size int, err error) {
 	// We are not going to lose data by copying a smaller var into a larger one.
@@ -166,8 +166,11 @@ func readStringData(r io.Reader, isUnicode bool) (str string, err error) {
 	if isUnicode {
 		var runes []rune
 		for bitIndex := 0; bitIndex < int(size)/2; bitIndex++ {
-			r, _ := utf8.DecodeRune(b[bitIndex*2:])
-			runes = append(runes, r)
+			if bitIndex*2+1 < len(b) {
+				runes = append(runes, toInt32(b[bitIndex*2], b[bitIndex*2+1]))
+			} else {
+				runes = append(runes, toInt32(b[bitIndex*2], 0))
+			}
 		}
 		return string(runes), nil
 	}
@@ -262,4 +265,7 @@ func uint64Byte(u uint64) []byte {
 		panic(err)
 	}
 	return buf.Bytes()
+}
+func toInt32(h, l uint8) int32 {
+	return int32(l)<<8 | int32(h)
 }
